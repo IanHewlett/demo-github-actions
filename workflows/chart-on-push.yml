@@ -1,0 +1,39 @@
+name: "Runs when there is a push event"
+
+on:
+  workflow_call:
+    inputs:
+      chart_name:
+        description: "chart name"
+        type: string
+        required: true
+    secrets:
+      vault_addr:
+        description: "vault addr"
+        required: true
+      vault_namespace:
+        description: "vault namespace"
+        required: true
+      vault_role:
+        description: "vault role"
+        required: true
+
+jobs:
+  scan:
+    name: Package Chart
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and Scan
+        uses: IanHewlett/proto-github-actions/.github/actions/chart-on-push@main
+        with:
+          chart_name: ${{ inputs.chart_name }}
+          vault_addr: ${{ secrets.vault_addr }}
+          vault_namespace: ${{ secrets.vault_namespace }}
+          vault_role: ${{ secrets.vault_role }}

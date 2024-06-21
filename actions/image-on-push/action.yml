@@ -1,0 +1,55 @@
+name: Build and Scan
+description: Build and Scan
+
+inputs:
+  image_name:
+    description: "image name"
+    required: true
+  vault_addr:
+    description: "vault addr"
+    required: true
+  vault_namespace:
+    description: "vault namespace"
+    required: true
+  vault_role:
+    description: "vault role"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build
+      shell: bash
+      run: |
+        docker build . \
+          --tag ghcr.io/ianhewlett/images/${{ inputs.image_name }}:${{ github.ref_name }}
+
+    - name: Vault Auth
+      uses: hashicorp/vault-action@v3.0.0
+      id: vault
+      with:
+        exportEnv: false
+        exportToken: true
+        url: ${{ inputs.vault_addr }}
+        namespace: ${{ inputs.vault_namespace }}
+        role: ${{ inputs.vault_role }}
+        method: jwt
+        secrets: secret/data/svc/snyk snyk_token
+
+    - name: Install Snyk
+      uses: snyk/actions/setup@master
+      id: snyk
+
+    - name: Snyk version
+      shell: bash
+      run: echo "${{ steps.snyk.outputs.version }}"
+
+    - name: Scan
+      shell: bash
+      run: |
+        snyk test \
+          --docker ghcr.io/ianhewlett/images/${{ inputs.image_name }}:${{ github.ref_name }} \
+          --severity-threshold=high \
+          --policy-path=.snyk
+      env:
+        SNYK_TOKEN: ${{ steps.vault.outputs.snyk_token }}

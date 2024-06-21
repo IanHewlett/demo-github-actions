@@ -1,0 +1,57 @@
+name: Publish and Sign
+description: Publish and Sign
+
+inputs:
+  image_name:
+    description: "image name"
+    required: true
+  vault_addr:
+    description: "vault addr"
+    required: true
+  vault_namespace:
+    description: "vault namespace"
+    required: true
+  vault_role:
+    description: "vault role"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Vault Auth
+      uses: hashicorp/vault-action@v3.0.0
+      id: vault
+      with:
+        exportEnv: false
+        exportToken: true
+        url: ${{ inputs.vault_addr }}
+        namespace: ${{ inputs.vault_namespace }}
+        role: ${{ inputs.vault_role }}
+        method: jwt
+        secrets: secret/data/svc/github image_pull_token | gh_pat
+
+    - name: Login
+      shell: bash
+      run: |
+        docker login -u username -p ${{ steps.vault.outputs.gh_pat }} ghcr.io/ianhewlett
+
+    - name: Push
+      shell: bash
+      run: |
+        docker push ghcr.io/ianhewlett/images/${{ inputs.image_name }}:${{ github.ref_name }}
+
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3.5.0
+
+    - name: Cosign version
+      shell: bash
+      run: cosign version
+
+    - name: Sign
+      shell: bash
+      run: |
+        cosign sign --key hashivault://image_signing_key \
+          ghcr.io/ianhewlett/images/${{ inputs.image_name }}:${{ github.ref_name }}
+      env:
+        VAULT_ADDR: ${{ inputs.vault_addr }}
+        VAULT_NAMESPACE: ${{ inputs.vault_namespace }}

@@ -1,0 +1,47 @@
+name: "Runs when there is a tag event"
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        description: "image name"
+        type: string
+        required: true
+    secrets:
+      vault_addr:
+        description: "vault addr"
+        required: true
+      vault_namespace:
+        description: "vault namespace"
+        required: true
+      vault_role:
+        description: "vault role"
+        required: true
+
+jobs:
+  publish:
+    name: Publish Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and Scan
+        uses: IanHewlett/proto-github-actions/.github/actions/image-on-push@main
+        with:
+          image_name: ${{ inputs.image_name }}
+          vault_addr: ${{ secrets.vault_addr }}
+          vault_namespace: ${{ secrets.vault_namespace }}
+          vault_role: ${{ secrets.vault_role }}
+
+      - name: Publish and Sign
+        uses: IanHewlett/proto-github-actions/.github/actions/image-on-tag@main
+        with:
+          image_name: ${{ inputs.image_name }}
+          vault_addr: ${{ secrets.vault_addr }}
+          vault_namespace: ${{ secrets.vault_namespace }}
+          vault_role: ${{ secrets.vault_role }}
