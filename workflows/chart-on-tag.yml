@@ -39,7 +39,7 @@ jobs:
           vault_role: ${{ secrets.vault_role }}
 
       - name: Publish and Sign
-        uses: IanHewlett/proto-github-actions/.github/actions/chart-on-tag@main
+        uses: IanHewlett/demo-github-actions/.github/actions/chart-on-tag@main
         with:
           chart_name: ${{ inputs.chart_name }}
           vault_addr: ${{ secrets.vault_addr }}
