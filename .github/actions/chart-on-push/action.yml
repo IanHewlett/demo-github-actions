@@ -46,6 +46,6 @@ runs:
       shell: bash
       run: |
         helm template --dependency-update --no-hooks ${{ inputs.chart_name }} ./charts/${{ inputs.chart_name }} > tmp-manifest.yaml
-        snyk iac test tmp-manifest.yaml
+        snyk iac test --policy-path=.snyk tmp-manifest.yaml
       env:
         SNYK_TOKEN: ${{ steps.vault.outputs.snyk_token }}
